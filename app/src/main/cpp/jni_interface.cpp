@@ -6,7 +6,7 @@
 #include "YoloV5.h"
 #include "YoloV4.h"
 #include "NanoDet.h"
-
+#include "CRNN.h"
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     ncnn::create_gpu_instance();
@@ -14,6 +14,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         YoloV5::hasGPU = true;
         YoloV4::hasGPU = true;
         NanoDet::hasGPU = true;
+        CRNN::hasGPU = true;
     }
     return JNI_VERSION_1_6;
 }
@@ -50,6 +51,25 @@ Java_com_rangi_nanodet_NanoDet_detect(JNIEnv *env, jclass, jobject image, jdoubl
         env->SetObjectArrayElement(ret, i++, obj);
     }
     return ret;
+}
+
+
+/*********************************************************************************************
+                                         CRNN
+ ********************************************************************************************/
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_rangi_nanodet_CRNN_init(JNIEnv *env, jclass, jobject assetManager, jboolean useGPU) {
+    if (CRNN::recognizer == nullptr) {
+        AAssetManager *mgr = AAssetManager_fromJava(env, assetManager);
+        CRNN::recognizer = new CRNN(mgr, "crnn_fp32.param", "crnn_fp32.bin", useGPU);
+    }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_rangi_nanodet_CRNN_recognize(JNIEnv *env, jclass clazz, jobject bitmap) {
+    auto results = CRNN::recognizer->recognition(env, bitmap);
+    return env->NewStringUTF(results.c_str());
 }
 
 /*********************************************************************************************
@@ -107,3 +127,4 @@ Java_com_rangi_nanodet_YOLOv4_detect(JNIEnv *env, jclass, jobject image, jdouble
     }
     return ret;
 }
+

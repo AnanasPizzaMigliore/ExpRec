@@ -6,15 +6,15 @@
 bool CRNN::hasGPU = true;
 CRNN* CRNN::recognizer = nullptr;
 
-CRNN::CRNN(bool useGPU) {
+CRNN::CRNN(AAssetManager *mgr, const char *param, const char *bin, bool useGPU) {
     this->Net = new ncnn::Net();
     hasGPU = ncnn::get_gpu_count() > 0;
     this->Net->opt.use_vulkan_compute = false; //hasGPU && useGPU;  // gpu
     this->Net->opt.use_fp16_arithmetic = true;
     this->Net->opt.use_fp16_packed = true;
     this->Net->opt.use_fp16_storage = true;
-    this->Net->load_param("crnn_fp32.param");
-    this->Net->load_model("crnn_fp32.bin");
+    this->Net->load_param(mgr,param);
+    this->Net->load_model(mgr,bin);
 }
 
 CRNN::~CRNN()

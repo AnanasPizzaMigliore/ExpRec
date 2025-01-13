@@ -32,7 +32,7 @@ public class Box {
     }
 
     public int getColor(){
-        Random random = new Random(25654);
+        Random random = new Random(25);
         return Color.argb(255,random.nextInt(256),random.nextInt(256),random.nextInt(256));
     }
 }

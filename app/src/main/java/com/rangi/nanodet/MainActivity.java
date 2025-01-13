@@ -29,6 +29,7 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.util.Size;
 import android.view.TextureView;
 import android.view.View;
@@ -48,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
+    String Tag = "img info";
     public static int NANODET = 1;
     public static int YOLOV5S = 2;
     public static int YOLOV4_TINY = 3;
@@ -105,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
             YOLOv4.init(getAssets(), USE_GPU);
         }  else if (USE_MODEL == NANODET) {
             NanoDet.init(getAssets(), USE_GPU);
+            CRNN.init(getAssets(), USE_GPU);
         }
         resultImageView = findViewById(R.id.imageView);
         thresholdTextview = findViewById(R.id.valTxtView);
@@ -359,11 +362,25 @@ public class MainActivity extends AppCompatActivity {
         for (Box box : results) {
             boxPaint.setColor(box.getColor());
             boxPaint.setStyle(Paint.Style.FILL);
-            canvas.drawText(box.getLabel() + String.format(Locale.CHINESE, " %.3f", box.getScore()), box.x0 + 3, box.y0 + 40 * mutableBitmap.getWidth() / 1000.0f, boxPaint);
+            var img = Bitmap.createBitmap(mutableBitmap, (int) (box.x0 - 5), (int) (box.y0 - 5),
+                    (int) (box.x1 - box.x0 + 10), (int) (box.y1 - box.y0 + 10));
+            //Log.d(Tag, "image is created");
+            var text = reg(img);
+            //Log.d(Tag, text);
+            canvas.drawText(text, box.x0 + 3, box.y0 + 100 * mutableBitmap.getWidth() / 1000.0f, boxPaint);
             boxPaint.setStyle(Paint.Style.STROKE);
             canvas.drawRect(box.getRect(), boxPaint);
         }
         return mutableBitmap;
+    }
+
+    protected String reg(Bitmap img){
+        if (img == null) {
+            return null;
+        }
+        else {
+            return CRNN.recognize(img);
+        }
     }
 
 

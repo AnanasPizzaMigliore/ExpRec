@@ -8,6 +8,7 @@ add_library(yolov5 SHARED
     YoloV5.cpp
     YoloV4.cpp
     NanoDet.cpp
+    CRNN.cpp
 )
 
 target_link_libraries(yolov5 ncnn jnigraphics)

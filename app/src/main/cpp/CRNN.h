@@ -10,7 +10,8 @@
 
 class CRNN {
 public:
-    CRNN(bool useGPU);
+    CRNN(AAssetManager *mgr, const char *param, const char *bin, bool useGPU);
+
 
     ~CRNN();
 

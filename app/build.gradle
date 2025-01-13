@@ -68,7 +68,12 @@ dependencies {
     implementation 'com.android.support:multidex:1.0.3'
     // crash
     //implementation 'com.zxy.android:recovery:1.0.0'
-    implementation 'com.github.Sunzxyong.Recovery:recovery:1.0.0'
+    //implementation 'com.github.Sunzxyong.Recovery:recovery:1.0.0'
+
+    debugImplementation 'com.github.Sunzxyong.Recovery:recovery:1.0.0'
+    releaseImplementation 'com.github.Sunzxyong.Recovery:recovery-no-op:1.0.0'
+
+
 
     // photoview
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
