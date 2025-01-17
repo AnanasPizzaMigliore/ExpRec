@@ -43,13 +43,23 @@ import android.widget.Toast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
-    String Tag = "img info";
+    //String Tag = "img info";
     public static int NANODET = 1;
     public static int YOLOV5S = 2;
     public static int YOLOV4_TINY = 3;
@@ -82,6 +92,26 @@ public class MainActivity extends AppCompatActivity {
 
     double total_fps = 0;
     int fps_count = 0;
+
+    List<String> formats = List.of(
+            "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd", "yyyy|MM|dd", "yyyyMMdd",
+            "dd-MM-yyyy", "dd/MM/yyyy", "dd.MM.yyyy", "dd|MM|yyyy", "ddMMyyyy",
+            "MM-dd-yyyy", "MM/dd/yyyy", "MM.dd.yyyy", "MM|dd|yyyy", "MMddyyyy",
+            "MMM-dd-yyyy", "MMM/dd/yyyy", "MMM.dd.yyyy", "MMM|dd|yyyy", "MMMddyyyy",
+            "dd-MMM-yyyy", "dd/MMM/yyyy", "dd.MMM.yyyy", "dd|MMM|yyyy", "ddMMMyyyy",
+            "yyyy-MMM-dd", "yyyy/MMM/dd", "yyyy.MMM.dd", "yyyy|MMM|dd", "yyyyMMMdd",
+            "yyyy-MM", "yyyy/MM", "yyyy.MM", "yyyy|MM", "yyyyMM",
+            "MM-yyyy", "MM/yyyy", "MM.yyyy", "MM|yyyy", "MMyyyy",
+            "MM-dd", "MM/dd", "MM.dd", "MM|dd", "MMdd",
+            "dd-MM", "dd/MM", "dd.MM", "dd|MM", "ddMM",
+            "yyyy-MMM", "yyyy/MMM", "yyyy.MMM", "yyyy|MMM", "yyyyMMM",
+            "MMM-yyyy", "MMM/yyyy", "MMM.yyyy", "MMM|yyyy", "MMMMyyyy",
+            "yy-MMM-dd", "yy/MMM/dd", "yy.MMM.dd", "yy|MMM|dd", "yyMMMdd",
+            "dd-MMM-yy", "dd/MMM/yy", "dd.MMM.yy", "dd|MMM|yy", "ddMMMyy",
+            "MMM-dd-yy", "MMM/dd/yy", "MMM.dd.yy", "MMM|dd|yy", "MMMddyy",
+            "yy-MM-dd", "yy/MM/dd", "yy.MM.dd", "yy|MM|dd", "yyMMdd",
+            "dd-MM-yy", "dd/MM/yy", "dd.MM.yy", "dd|MM|yy", "ddMMyy"
+    );
 
     protected Bitmap mutableBitmap;
 
@@ -374,12 +404,55 @@ public class MainActivity extends AppCompatActivity {
         return mutableBitmap;
     }
 
+    public static LocalDate parseDates(String dateStr, List<String> formats) {
+        LocalDate currentDate = LocalDate.now();
+        List<LocalDate> parsedDates = new ArrayList<>();
+
+        // Attempt to parse the date string with each format
+        for (String format : formats) {
+            try {
+                //DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format, Locale.ENGLISH);
+                var formatter = new DateTimeFormatterBuilder()
+                        .parseCaseInsensitive()
+                        .appendPattern(format)
+                        .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
+                        .parseDefaulting(ChronoField.YEAR_OF_ERA, LocalDate.now().getYear())
+                        .toFormatter(Locale.ENGLISH);
+                parsedDates.add(LocalDate.parse(dateStr, formatter));
+            } catch (DateTimeParseException e) {
+                // Ignore invalid formats
+            }
+        }
+
+        // Find the closest date to the current date
+        return parsedDates.stream()
+                .min(Comparator.comparingLong(date -> Math.abs(ChronoUnit.DAYS.between(currentDate, date))))
+                .orElseThrow(() -> new IllegalArgumentException("No valid date found for the given formats"));
+    }
+
+    public static DateTimeFormatter createFormatter(List<String> patterns, Locale locale) {
+        DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder()
+                .parseCaseInsensitive(); // Enable case-insensitive parsing
+
+        for (String pattern : patterns) {
+            builder.appendOptional(DateTimeFormatter.ofPattern(pattern));
+        }
+
+        return builder.toFormatter(locale).withResolverStyle(ResolverStyle.STRICT);
+    }
+
     protected String reg(Bitmap img){
         if (img == null) {
             return null;
         }
         else {
-            return CRNN.recognize(img);
+            var text = CRNN.recognize(img);
+            try {
+                LocalDate closestDate = parseDates(text, formats);
+                return closestDate.toString();
+            } catch (IllegalArgumentException e) {
+                return text;
+            }
         }
     }
 
