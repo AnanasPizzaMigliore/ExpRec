@@ -14,6 +14,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -28,6 +29,8 @@ import android.graphics.YuvImage;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
@@ -41,8 +44,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -52,11 +57,13 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import android.os.BatteryManager;
 
 public class MainActivity extends AppCompatActivity {
     //String Tag = "img info";
@@ -84,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
     private AtomicBoolean detecting = new AtomicBoolean(false);
     private AtomicBoolean detectPhoto = new AtomicBoolean(false);
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     private long startTime = 0;
     private long endTime = 0;
@@ -121,6 +129,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        BatteryManager batteryManager = (BatteryManager) getSystemService(BATTERY_SERVICE);
+        int chargeCounter = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                int chargeCounter = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
+                saveToFile(chargeCounter);
+                handler.postDelayed(this, 60000); // 1 minute (60000 ms)
+            }
+        }, 60000); // 1 minute (60000 ms)
+
         int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
         if (permission != PackageManager.PERMISSION_GRANTED) {
             // We don't have permission so prompt the user
@@ -131,6 +151,8 @@ public class MainActivity extends AppCompatActivity {
             );
             finish();
         }
+
+
         if (USE_MODEL == YOLOV5S) {
             YOLOv5.init(getAssets(), USE_GPU);
         } else if (USE_MODEL == YOLOV4_TINY) {
@@ -224,6 +246,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
     private void updateTransform() {
         Matrix matrix = new Matrix();
@@ -378,7 +402,27 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
+    public void saveToFile(int chargeCounter) {
+        String fileName = "battery_info_fp16.txt";
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        String content = "Timestamp: " + timeStamp + " Charge Counter: " + chargeCounter + " μAh\n";
+        FileOutputStream fos = null;
+        try {
+            fos = openFileOutput(fileName, Context.MODE_PRIVATE | Context.MODE_APPEND);
+            fos.write(content.getBytes());
+            Toast.makeText(this, "Battery info saved", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
     protected Bitmap drawBoxRects(Bitmap mutableBitmap, Box[] results) {
         if (results == null || results.length == 0) {
             return mutableBitmap;
@@ -392,14 +436,28 @@ public class MainActivity extends AppCompatActivity {
         for (Box box : results) {
             boxPaint.setColor(box.getColor());
             boxPaint.setStyle(Paint.Style.FILL);
-            var img = Bitmap.createBitmap(mutableBitmap, (int) (box.x0 - 5), (int) (box.y0 - 5),
-                    (int) (box.x1 - box.x0 + 10), (int) (box.y1 - box.y0 + 10));
-            //Log.d(Tag, "image is created");
-            var text = reg(img);
-            //Log.d(Tag, text);
-            canvas.drawText(text, box.x0 + 3, box.y0 + 100 * mutableBitmap.getWidth() / 1000.0f, boxPaint);
-            boxPaint.setStyle(Paint.Style.STROKE);
-            canvas.drawRect(box.getRect(), boxPaint);
+            Bitmap img;
+            String text;
+            try {
+                int x = (int) (box.x0 - 5);
+                int y = (int) (box.y0 - 5);
+                int width = (int) (box.x1 - box.x0 + 10);
+                int height = (int) (box.y1 - box.y0 + 10);
+
+                // Check boundaries
+                if (x < 0 || y < 0 || x + width > mutableBitmap.getWidth() || y + height > mutableBitmap.getHeight()) {
+                    break;
+                } else {
+                    img = Bitmap.createBitmap(mutableBitmap, x, y, width, height);
+                    text = reg(img);
+                }
+                canvas.drawText(text, box.x0 + 3, box.y0 + 100 * mutableBitmap.getWidth() / 1000.0f, boxPaint);
+                boxPaint.setStyle(Paint.Style.STROKE);
+                canvas.drawRect(box.getRect(), boxPaint);
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+                Log.e("BitmapCreation", "Failed to create bitmap: " + e.getMessage());
+            }
         }
         return mutableBitmap;
     }
