@@ -9,7 +9,7 @@ CRNN* CRNN::recognizer = nullptr;
 CRNN::CRNN(AAssetManager *mgr, const char *param, const char *bin, bool useGPU) {
     this->Net = new ncnn::Net();
     hasGPU = ncnn::get_gpu_count() > 0;
-    this->Net->opt.use_vulkan_compute = false; //hasGPU && useGPU;  // gpu
+    this->Net->opt.use_vulkan_compute = useGPU; //hasGPU && useGPU;  // gpu
     this->Net->opt.use_fp16_arithmetic = true;
     this->Net->opt.use_fp16_packed = true;
     this->Net->opt.use_fp16_storage = true;
@@ -32,8 +32,8 @@ std::string CRNN::recognition(JNIEnv *env, jobject image) {
     auto ex = this->Net->create_extractor();
     ex.set_light_mode(true);
     ex.set_num_threads(4);
-    hasGPU = ncnn::get_gpu_count() > 0;
-    ex.set_vulkan_compute(hasGPU);
+    //hasGPU = ncnn::get_gpu_count() > 0;
+    //ex.set_vulkan_compute(hasGPU);
     ex.input("in0", input);
     ncnn::Mat output;
     ex.extract("out0", output);

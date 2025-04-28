@@ -32,7 +32,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_rangi_nanodet_NanoDet_init(JNIEnv *env, jclass, jobject assetManager, jboolean useGPU) {
     if (NanoDet::detector == nullptr) {
         AAssetManager *mgr = AAssetManager_fromJava(env, assetManager);
-        NanoDet::detector = new NanoDet(mgr, "repghost_fp16.param", "repghost_fp16.bin", useGPU);
+        NanoDet::detector = new NanoDet(mgr, "repghost_int8.param", "repghost_int8.bin", useGPU);
     }
 }
 
@@ -62,7 +62,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_rangi_nanodet_CRNN_init(JNIEnv *env, jclass, jobject assetManager, jboolean useGPU) {
     if (CRNN::recognizer == nullptr) {
         AAssetManager *mgr = AAssetManager_fromJava(env, assetManager);
-        CRNN::recognizer = new CRNN(mgr, "crnn_fp16.param", "crnn_fp16.bin", useGPU);
+        CRNN::recognizer = new CRNN(mgr, "crnn_int8.param", "crnn_int8.bin", useGPU);
     }
 }
 

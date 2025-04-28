@@ -64,7 +64,7 @@ static void generate_grid_center_priors(const int input_height, const int input_
 NanoDet::NanoDet(AAssetManager *mgr, const char *param, const char *bin, bool useGPU) {
     this->Net = new ncnn::Net();
     hasGPU = ncnn::get_gpu_count() > 0;
-    this->Net->opt.use_vulkan_compute = false; //hasGPU && useGPU;  // gpu
+    this->Net->opt.use_vulkan_compute = useGPU; //hasGPU && useGPU;  // gpu
     this->Net->opt.use_fp16_arithmetic = true;
     this->Net->opt.use_fp16_packed = true;
     this->Net->opt.use_fp16_storage = true;
@@ -100,7 +100,7 @@ std::vector<BoxInfo> NanoDet::detect(JNIEnv *env, jobject image, float score_thr
     auto ex = this->Net->create_extractor();
     ex.set_light_mode(true);
     ex.set_num_threads(4);
-    hasGPU = ncnn::get_gpu_count() > 0;
+    //hasGPU = ncnn::get_gpu_count() > 0;
     //ex.set_vulkan_compute(hasGPU);
     ex.input("in0", input);
     std::vector<std::vector<BoxInfo>> results;

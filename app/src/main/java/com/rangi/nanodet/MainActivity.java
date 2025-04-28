@@ -403,10 +403,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void saveToFile(int chargeCounter) {
-        String fileName = "battery_info_fp16.txt";
+        String fileName = "battery_info_int8_gpu.txt";
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
         String content = "Timestamp: " + timeStamp + " Charge Counter: " + chargeCounter + " μAh\n";
         FileOutputStream fos = null;
+        //Log.d(" Charge Counter: " , String.valueOf(chargeCounter));
         try {
             fos = openFileOutput(fileName, Context.MODE_PRIVATE | Context.MODE_APPEND);
             fos.write(content.getBytes());
